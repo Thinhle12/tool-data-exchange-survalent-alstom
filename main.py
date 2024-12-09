@@ -1,71 +1,81 @@
 import os
 import pandas as pd
-from pyxlsb import open_workbook
 
-def process_files(input_folder, output_folder, user_input):
-    # Tìm file .xlsb và .csv trong thư mục input
-    xlsb_file = None
-    csv_file = None
+# Hàm xử lý cột "PID" và tạo các cột "Device" và "Point"
+def process_csv(input_folder, output_folder):
+    # Lấy danh sách file .csv trong thư mục input
+    csv_files = [f for f in os.listdir(input_folder) if f.endswith(".csv")]
 
-    for file in os.listdir(input_folder):
-        if file.endswith(".xlsb"):
-            xlsb_file = os.path.join(input_folder, file)
-        elif file.endswith(".csv"):
-            csv_file = os.path.join(input_folder, file)
-
-    # Kiểm tra sự tồn tại của các file
-    if not xlsb_file:
-        print("Không tìm thấy file .xlsb trong thư mục input.")
-        return
-    if not csv_file:
-        print("Không tìm thấy file .csv trong thư mục input.")
+    if not csv_files:
+        print("Không tìm thấy file .csv nào trong thư mục input.")
         return
 
-    # Đọc file .csv
-    df_csv = pd.read_csv(csv_file)
-    updated_rows = []
+    for csv_file in csv_files:
+        input_path = os.path.join(input_folder, csv_file)
+        df = pd.read_csv(input_path)
 
-    # Đọc file .xlsb
-    with open_workbook(xlsb_file) as wb:
-        for sheet_name in wb.sheets:
-            with wb.get_sheet(sheet_name) as sheet:
-                for row in sheet.rows():
-                    # Đọc dữ liệu từ các cột D, H, và I trong file .xlsb
-                    row_data = [r.v for r in row]
-                    if len(row_data) > 8:  # Kiểm tra đủ số cột
-                        xlsb_col_d = row_data[3]  # Cột D
-                        xlsb_col_h = row_data[7]  # Cột H
-                        xlsb_col_i = row_data[8]  # Cột I
+        if "PID" not in df.columns:
+            print(f"File {csv_file} không có cột 'PID'. Bỏ qua file này.")
+            continue
 
-                        # Điều kiện 1: Cột H trong file .xlsb phải là "UC" + tên ngăn + "K1"
-                        if xlsb_col_h == f"UC{user_input}K1":
-                            # Lọc file .csv để kiểm tra điều kiện
-                            for index, csv_row in df_csv.iterrows():
-                                csv_col_f = csv_row["F"]
-                                csv_col_h = csv_row["H"]
+        # Tạo cột "Device"
+        def generate_device(value):
+            if pd.isna(value) or "," not in value:
+                return None
+            prefix, _ = value.split(",", 1)
+            if prefix.startswith("PCPTHO_RC") and "CM_" in prefix:
+                parts = prefix.split("CM_")
+                if len(parts) == 2:
+                    code = parts[1]
+                    mapping = {
+                        "COMMON": "CM",
+                        "K1": "71",
+                        "K2": "73",
+                        "K3": "75",
+                        "K4": "77",
+                        "K5": "79",
+                        "K6": "81",
+                        "T1": "31",
+                        "T2": "33",
+                        "T3": "35",
+                    }
+                    if code in mapping:
+                        return f"UC{parts[0][9:]}{mapping[code]}"  # **** là phần giữa "PCPTHO_RC" và "CM_"
+            return None
 
-                                # Điều kiện 2: Kiểm tra dữ liệu trước dấu "," trong cột F của file .csv
-                                if "," in csv_col_f:
-                                    csv_prefix, csv_suffix = csv_col_f.split(",", 1)
-                                    if csv_prefix == f"PCPTHO_RC{user_input}CM_K1" and csv_suffix == str(xlsb_col_i):
-                                        # Thỏa mãn điều kiện, copy dữ liệu từ xlsb_col_d vào csv_col_h
-                                        df_csv.at[index, "H"] = xlsb_col_d
-                                        updated_rows.append(index)
+        # Tạo cột "Point"
+        def generate_point(value):
+            if pd.isna(value) or "," not in value:
+                return None
+            _, after_comma = value.split(",", 1)
+            return after_comma.strip()
 
-    # Xác định tên file đầu ra
-    csv_filename = os.path.basename(csv_file)  # Lấy tên file gốc
-    output_csv_name = os.path.splitext(csv_filename)[0] + "_done.csv"  # Thêm hậu tố "_done"
-    output_csv = os.path.join(output_folder, output_csv_name)
+        # Áp dụng hàm xử lý cho cột "PID"
+        df["Device"] = df["PID"].apply(generate_device)
+        df["Point"] = df["PID"].apply(generate_point)
 
-    # Ghi file .csv kết quả
-    os.makedirs(output_folder, exist_ok=True)
-    df_csv.to_csv(output_csv, index=False)
-    print(f"Dữ liệu đã được cập nhật cho {len(updated_rows)} dòng và lưu vào '{output_csv}'.")
+        # Chèn cột "Device" và "Point" vào vị trí mong muốn
+        pid_index = df.columns.get_loc("PID")  # Lấy vị trí của cột "PID"
+        cols = df.columns.tolist()  # Lấy danh sách cột hiện tại
 
-# Nhập thông tin từ người dùng
+        # Đưa "Device" vào sau "PID"
+        cols.insert(pid_index + 1, cols.pop(cols.index("Device")))
+
+        # Đưa "Point" vào sau "Device"
+        cols.insert(pid_index + 2, cols.pop(cols.index("Point")))
+
+        df = df[cols]  # Đặt lại thứ tự cột
+
+        # Lưu file kết quả
+        output_filename = os.path.splitext(csv_file)[0] + "_DaXuLy.csv"
+        output_path = os.path.join(output_folder, output_filename)
+        os.makedirs(output_folder, exist_ok=True)
+        df.to_csv(output_path, index=False)
+        print(f"Đã xử lý và lưu file: {output_filename}")
+
+# Thư mục đầu vào và đầu ra
 input_folder = "input"
 output_folder = "output"
-user_input = input("Nhập tên ngăn: ")
 
 # Gọi hàm xử lý
-process_files(input_folder, output_folder, user_input)
+process_csv(input_folder, output_folder)
