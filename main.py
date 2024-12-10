@@ -1,8 +1,9 @@
 import os
 import pandas as pd
+import pyxlsb  # Thư viện để đọc file .xlsb
 
 # Hàm xử lý cột "PID" và tạo các cột "Device" và "Point"
-def process_csv(input_folder, output_folder):
+def process_csv(input_folder):
     # Lấy danh sách file .csv trong thư mục input
     csv_files = [f for f in os.listdir(input_folder) if f.endswith(".csv")]
 
@@ -66,16 +67,70 @@ def process_csv(input_folder, output_folder):
 
         df = df[cols]  # Đặt lại thứ tự cột
 
-        # Lưu file kết quả
-        output_filename = os.path.splitext(csv_file)[0] + "_DaXuLy.csv"
-        output_path = os.path.join(output_folder, output_filename)
-        os.makedirs(output_folder, exist_ok=True)
+        # Lưu file kết quả vào thư mục input với tên mới
+        output_filename = os.path.splitext(csv_file)[0] + "_DaThemCot.csv"
+        output_path = os.path.join(input_folder, output_filename)
         df.to_csv(output_path, index=False)
         print(f"Đã xử lý và lưu file: {output_filename}")
 
-# Thư mục đầu vào và đầu ra
+# Thư mục đầu vào
 input_folder = "input"
+
+# Gọi hàm xử lý
+process_csv(input_folder)
+
+
+
+
+# Hàm xử lý cột "PID" và tạo các cột "Device" và "Point"
+def process_csv2(input_folder, output_folder):
+    # Lấy danh sách file .csv trong thư mục input
+    csv_files = [f for f in os.listdir(input_folder) if f.endswith("_DaThemCot.csv")]
+    xlsb_files = [f for f in os.listdir(input_folder) if f.endswith(".xlsb")]
+
+    if not csv_files or not xlsb_files:
+        print("Không tìm thấy file _DaThemCot.csv hoặc file .xlsb nào trong thư mục input.")
+        return
+
+    csv_file = csv_files[0]  # Giả định chỉ có một file _DaThemCot.csv
+    xlsb_file = xlsb_files[0]  # Giả định chỉ có một file .xlsb
+
+    # Đọc file .csv
+    csv_path = os.path.join(input_folder, csv_file)
+    df_csv = pd.read_csv(csv_path)
+
+    if "Device" not in df_csv.columns or "Point" not in df_csv.columns:
+        print(f"File {csv_file} không có cột 'Device' hoặc 'Point'.")
+        return
+
+    # Đọc file .xlsb và xử lý
+    xlsb_path = os.path.join(input_folder, xlsb_file)
+    with pyxlsb.open_workbook(xlsb_path) as wb:
+        for sheet_name in wb.sheets:
+            with wb.get_sheet(sheet_name) as sheet:
+                for row in sheet.rows():
+                    # Đọc dữ liệu trong từng hàng
+                    h_value = row[7].v if len(row) > 7 else None  # Cột H
+                    i_value = row[8].v if len(row) > 8 else None  # Cột I
+                    d_value = row[3].v if len(row) > 3 else None  # Cột D
+
+                    if pd.isna(h_value) or pd.isna(i_value):
+                        continue
+
+                    # Tìm hàng tương ứng trong file _DaThemCot.csv
+                    mask = (df_csv["Device"] == h_value) & (df_csv["Point"] == i_value)
+                    df_csv.loc[mask, "ADDRESS"] = d_value
+
+    # Lưu file kết quả
+    output_filename = os.path.splitext(csv_file)[0] + "_Done.csv"
+    output_path = os.path.join(output_folder, output_filename)
+    os.makedirs(output_folder, exist_ok=True)
+    df_csv.to_csv(output_path, index=False)
+    print(f"Đã xử lý và lưu file: {output_filename}")
+
+# Thư mục đầu vào và đầu ra
 output_folder = "output"
 
 # Gọi hàm xử lý
-process_csv(input_folder, output_folder)
+process_csv2(input_folder, output_folder)
+
