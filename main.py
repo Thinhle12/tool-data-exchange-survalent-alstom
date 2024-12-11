@@ -73,18 +73,8 @@ def process_csv(input_folder):
         df.to_csv(output_path, index=False)
         print(f"Đã xử lý và lưu file: {output_filename}")
 
-# Thư mục đầu vào
-input_folder = "input"
-
-# Gọi hàm xử lý
-process_csv(input_folder)
-
-
-
-
-# Hàm xử lý cột "PID" và tạo các cột "Device" và "Point"
+# Hàm xử lý file _DaThemCot.csv và file .xlsb
 def process_csv2(input_folder, output_folder):
-    # Lấy danh sách file .csv trong thư mục input
     csv_files = [f for f in os.listdir(input_folder) if f.endswith("_DaThemCot.csv")]
     xlsb_files = [f for f in os.listdir(input_folder) if f.endswith(".xlsb")]
 
@@ -92,8 +82,8 @@ def process_csv2(input_folder, output_folder):
         print("Không tìm thấy file _DaThemCot.csv hoặc file .xlsb nào trong thư mục input.")
         return
 
-    csv_file = csv_files[0]  # Giả định chỉ có một file _DaThemCot.csv
-    xlsb_file = xlsb_files[0]  # Giả định chỉ có một file .xlsb
+    csv_file = csv_files[0]
+    xlsb_file = xlsb_files[0]
 
     # Đọc file .csv
     csv_path = os.path.join(input_folder, csv_file)
@@ -105,11 +95,17 @@ def process_csv2(input_folder, output_folder):
 
     # Đọc file .xlsb và xử lý
     xlsb_path = os.path.join(input_folder, xlsb_file)
+    is_status_file = csv_file.startswith("STATUS")  # Kiểm tra nếu file .csv bắt đầu bằng "STATUS"
+
     with pyxlsb.open_workbook(xlsb_path) as wb:
         for sheet_name in wb.sheets:
+            # Bỏ qua các sheet "TC" và "TC1" nếu file .csv bắt đầu bằng "STATUS"
+            if is_status_file and sheet_name in ["TC", "TC1"]:
+                print(f"Bỏ qua sheet: {sheet_name} vì file .csv bắt đầu bằng 'STATUS'.")
+                continue
+
             with wb.get_sheet(sheet_name) as sheet:
                 for row in sheet.rows():
-                    # Đọc dữ liệu trong từng hàng
                     h_value = row[7].v if len(row) > 7 else None  # Cột H
                     i_value = row[8].v if len(row) > 8 else None  # Cột I
                     d_value = row[3].v if len(row) > 3 else None  # Cột D
@@ -119,6 +115,22 @@ def process_csv2(input_folder, output_folder):
 
                     # Tìm hàng tương ứng trong file _DaThemCot.csv
                     mask = (df_csv["Device"] == h_value) & (df_csv["Point"] == i_value)
+
+                    # Đảm bảo cột "ADDRESS" tồn tại và có kiểu dữ liệu là chuỗi
+                    if "ADDRESS" not in df_csv.columns:
+                        df_csv["ADDRESS"] = ""  # Tạo cột "ADDRESS" nếu chưa có
+                    else:
+                        df_csv["ADDRESS"] = df_csv["ADDRESS"].astype(str)  # Chuyển sang kiểu chuỗi
+
+                    # Xử lý giá trị d_value trước khi gán
+                    if isinstance(d_value, float) and d_value.is_integer():
+                        d_value = int(d_value)  # Loại bỏ phần thập phân nếu giá trị là số nguyên
+                    elif isinstance(d_value, float):
+                        d_value = str(d_value)  # Chuyển thành chuỗi nếu giá trị là số thực
+                    elif d_value is not None:
+                        d_value = str(d_value)  # Chuyển thành chuỗi nếu không phải là None
+
+                    # Gán giá trị vào cột "ADDRESS"
                     df_csv.loc[mask, "ADDRESS"] = d_value
 
     # Lưu file kết quả
@@ -129,8 +141,9 @@ def process_csv2(input_folder, output_folder):
     print(f"Đã xử lý và lưu file: {output_filename}")
 
 # Thư mục đầu vào và đầu ra
+input_folder = "input"
 output_folder = "output"
 
 # Gọi hàm xử lý
+process_csv(input_folder)
 process_csv2(input_folder, output_folder)
-
