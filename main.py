@@ -165,11 +165,29 @@ def process_csv2(input_folder, output_folder):
         df_csv.to_csv(output_path, index=False)
         print(f"Đã xử lý và lưu file: {output_filename}")
 
+# Hàm xóa cột "Device" và "Point" khỏi các file _Done.csv
+def remove_columns_from_done(output_folder):
+    done_files = [f for f in os.listdir(output_folder) if f.lower().endswith("_done.csv")]
+
+    if not done_files:
+        print("Không tìm thấy file _Done.csv nào trong thư mục output.")
+        return
+
+    for done_file in done_files:
+        file_path = os.path.join(output_folder, done_file)
+        df = pd.read_csv(file_path)
+
+        if "Device" in df.columns and "Point" in df.columns:
+            df.drop(columns=["Device", "Point"], inplace=True)
+            df.to_csv(file_path, index=False)
+            print(f"Đã xóa cột 'Device' và 'Point' khỏi file: {done_file}")
+
 # Thư mục đầu vào và đầu ra
 input_folder = "input"
 output_folder = "output"
 
-# Gọi hàm làm sạch và xử lý
+# Gọi các hàm xử lý
 clean_csv(input_folder)
 process_csv(input_folder)
 process_csv2(input_folder, output_folder)
+remove_columns_from_done(output_folder)
