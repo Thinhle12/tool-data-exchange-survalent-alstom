@@ -2,9 +2,36 @@ import os
 import pandas as pd
 import pyxlsb  # Thư viện để đọc file .xlsb
 
+# Hàm làm sạch dữ liệu trong cột "PID"
+def clean_csv(input_folder):
+    csv_files = [f for f in os.listdir(input_folder) if f.endswith(".csv")]
+
+    if not csv_files:
+        print("Không tìm thấy file .csv nào trong thư mục input.")
+        return
+
+    for csv_file in csv_files:
+        input_path = os.path.join(input_folder, csv_file)
+        df = pd.read_csv(input_path)
+
+        if "PID" not in df.columns:
+            print(f"File {csv_file} không có cột 'PID'. Bỏ qua file này.")
+            continue
+
+        # Xử lý làm sạch dựa trên tên file
+        if csv_file.startswith("ANALOG"):
+            df["PID"] = df["PID"].str.replace(":A$", "", regex=True)
+        elif csv_file.startswith("CONTROL"):
+            df["PID"] = df["PID"].str.replace(":S$", "", regex=True)
+        elif csv_file.startswith("STATUS"):
+            df["PID"] = df["PID"].str.replace(":S$", "", regex=True)
+
+        # Lưu file đã làm sạch
+        df.to_csv(input_path, index=False)
+        print(f"Đã làm sạch dữ liệu trong file: {csv_file}")
+
 # Hàm xử lý cột "PID" và tạo các cột "Device" và "Point"
 def process_csv(input_folder):
-    # Lấy danh sách file .csv trong thư mục input
     csv_files = [f for f in os.listdir(input_folder) if f.endswith(".csv")]
 
     if not csv_files:
@@ -142,6 +169,7 @@ def process_csv2(input_folder, output_folder):
 input_folder = "input"
 output_folder = "output"
 
-# Gọi hàm xử lý
+# Gọi hàm làm sạch và xử lý
+clean_csv(input_folder)
 process_csv(input_folder)
 process_csv2(input_folder, output_folder)
