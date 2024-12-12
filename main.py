@@ -4,7 +4,7 @@ import pyxlsb  # Thư viện để đọc file .xlsb
 
 # Hàm làm sạch dữ liệu trong cột "PID"
 def clean_csv(input_folder):
-    csv_files = [f for f in os.listdir(input_folder) if f.endswith(".csv")]
+    csv_files = [f for f in os.listdir(input_folder) if f.lower().endswith(".csv")]
 
     if not csv_files:
         print("Không tìm thấy file .csv nào trong thư mục input.")
@@ -19,11 +19,11 @@ def clean_csv(input_folder):
             continue
 
         # Xử lý làm sạch dựa trên tên file
-        if csv_file.startswith("ANALOG"):
+        if csv_file.upper().startswith("ANALOG"):
             df["PID"] = df["PID"].str.replace(":A$", "", regex=True)
-        elif csv_file.startswith("CONTROL"):
+        elif csv_file.upper().startswith("CONTROL"):
             df["PID"] = df["PID"].str.replace(":S$", "", regex=True)
-        elif csv_file.startswith("STATUS"):
+        elif csv_file.upper().startswith("STATUS"):
             df["PID"] = df["PID"].str.replace(":S$", "", regex=True)
 
         # Lưu file đã làm sạch
@@ -32,7 +32,7 @@ def clean_csv(input_folder):
 
 # Hàm xử lý cột "PID" và tạo các cột "Device" và "Point"
 def process_csv(input_folder):
-    csv_files = [f for f in os.listdir(input_folder) if f.endswith(".csv")]
+    csv_files = [f for f in os.listdir(input_folder) if f.lower().endswith(".csv")]
 
     if not csv_files:
         print("Không tìm thấy file .csv nào trong thư mục input.")
@@ -102,8 +102,8 @@ def process_csv(input_folder):
 
 # Hàm xử lý file _DaThemCot.csv và file .xlsb
 def process_csv2(input_folder, output_folder):
-    csv_files = [f for f in os.listdir(input_folder) if f.endswith("_DaThemCot.csv")]
-    xlsb_files = [f for f in os.listdir(input_folder) if f.endswith(".xlsb")]
+    csv_files = [f for f in os.listdir(input_folder) if f.lower().endswith("_dathemcot.csv")]
+    xlsb_files = [f for f in os.listdir(input_folder) if f.lower().endswith(".xlsb")]
 
     if not csv_files or not xlsb_files:
         print("Không tìm thấy file _DaThemCot.csv hoặc file .xlsb nào trong thư mục input.")
@@ -120,7 +120,7 @@ def process_csv2(input_folder, output_folder):
         # Đọc file .xlsb và xử lý
         xlsb_file = xlsb_files[0]
         xlsb_path = os.path.join(input_folder, xlsb_file)
-        is_status_file = csv_file.startswith("STATUS")  # Kiểm tra nếu file .csv bắt đầu bằng "STATUS"
+        is_status_file = csv_file.upper().startswith("STATUS")  # Kiểm tra nếu file .csv bắt đầu bằng "STATUS"
 
         with pyxlsb.open_workbook(xlsb_path) as wb:
             for sheet_name in wb.sheets:
