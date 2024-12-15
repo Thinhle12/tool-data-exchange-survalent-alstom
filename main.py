@@ -4,14 +4,22 @@ import pyxlsb
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 from tkinter.scrolledtext import ScrolledText
+import time
+
+# Hàm hiển thị log từng dòng
+def log_message(message):
+    log_output.insert(tk.END, message + "\n")
+    log_output.see(tk.END)
+    root.update_idletasks()
+    time.sleep(0.1)
 
 # Hàm làm sạch dữ liệu trong cột "PID"
 def clean_csv(input_folder):
-    log_output.insert(tk.END, "Bắt đầu làm sạch dữ liệu...\n")
+    log_message("Bắt đầu làm sạch dữ liệu...")
     csv_files = [f for f in os.listdir(input_folder) if f.lower().endswith(".csv")]
 
     if not csv_files:
-        log_output.insert(tk.END, "Không tìm thấy file .csv nào trong thư mục input.\n")
+        log_message("Không tìm thấy file .csv nào trong thư mục input.")
         return
 
     for csv_file in csv_files:
@@ -19,7 +27,7 @@ def clean_csv(input_folder):
         df = pd.read_csv(input_path)
 
         if "PID" not in df.columns:
-            log_output.insert(tk.END, f"File {csv_file} không có cột 'PID'. Bỏ qua.\n")
+            log_message(f"File {csv_file} không có cột 'PID'. Bỏ qua.")
             continue
 
         # Xử lý làm sạch dựa trên tên file
@@ -32,15 +40,15 @@ def clean_csv(input_folder):
 
         # Lưu file đã làm sạch
         df.to_csv(input_path, index=False)
-        log_output.insert(tk.END, f"Đã làm sạch dữ liệu trong file: {csv_file}\n")
+        log_message(f"Đã làm sạch dữ liệu trong file: {csv_file}")
 
 # Hàm xử lý cột "PID" và tạo các cột "Device" và "Point"
 def process_csv(input_folder):
-    log_output.insert(tk.END, "Bắt đầu xử lý cột 'PID'...\n")
+    log_message("Bắt đầu xử lý cột 'PID'...")
     csv_files = [f for f in os.listdir(input_folder) if f.lower().endswith(".csv")]
 
     if not csv_files:
-        log_output.insert(tk.END, "Không tìm thấy file .csv nào trong thư mục input.\n")
+        log_message("Không tìm thấy file .csv nào trong thư mục input.")
         return
 
     for csv_file in csv_files:
@@ -48,7 +56,7 @@ def process_csv(input_folder):
         df = pd.read_csv(input_path)
 
         if "PID" not in df.columns:
-            log_output.insert(tk.END, f"File {csv_file} không có cột 'PID'. Bỏ qua.\n")
+            log_message(f"File {csv_file} không có cột 'PID'. Bỏ qua.")
             continue
 
         def generate_device(value):
@@ -93,16 +101,16 @@ def process_csv(input_folder):
         output_filename = os.path.splitext(csv_file)[0] + "_DaThemCot.csv"
         output_path = os.path.join(input_folder, output_filename)
         df.to_csv(output_path, index=False)
-        log_output.insert(tk.END, f"Đã xử lý và lưu file: {output_filename}\n")
+        log_message(f"Đã xử lý và lưu file: {output_filename}")
 
 # Hàm xử lý file _DaThemCot.csv và file .xlsb
 def process_csv2(input_folder, output_folder):
-    log_output.insert(tk.END, "Bắt đầu xử lý file _DaThemCot.csv...\n")
+    log_message("Bắt đầu xử lý file _DaThemCot.csv...")
     csv_files = [f for f in os.listdir(input_folder) if f.lower().endswith("_dathemcot.csv")]
     xlsb_files = [f for f in os.listdir(input_folder) if f.lower().endswith(".xlsb")]
 
     if not csv_files or not xlsb_files:
-        log_output.insert(tk.END, "Không tìm thấy file _DaThemCot.csv hoặc file .xlsb nào.\n")
+        log_message("Không tìm thấy file _DaThemCot.csv hoặc file .xlsb nào.")
         return
 
     for csv_file in csv_files:
@@ -110,7 +118,7 @@ def process_csv2(input_folder, output_folder):
         df_csv = pd.read_csv(csv_path)
 
         if "Device" not in df_csv.columns or "Point" not in df_csv.columns:
-            log_output.insert(tk.END, f"File {csv_file} không có cột 'Device' hoặc 'Point'.\n")
+            log_message(f"File {csv_file} không có cột 'Device' hoặc 'Point'.")
             continue
 
         xlsb_file = xlsb_files[0]
@@ -120,7 +128,7 @@ def process_csv2(input_folder, output_folder):
         with pyxlsb.open_workbook(xlsb_path) as wb:
             for sheet_name in wb.sheets:
                 if is_status_file and sheet_name in ["TC", "TC1"]:
-                    log_output.insert(tk.END, f"Bỏ qua sheet: {sheet_name}.\n")
+                    log_message(f"Bỏ qua sheet: {sheet_name}.")
                     continue
 
                 with wb.get_sheet(sheet_name) as sheet:
@@ -148,44 +156,70 @@ def process_csv2(input_folder, output_folder):
 
                         df_csv.loc[mask, "ADDRESS"] = d_value
 
+        # Loại bỏ đuôi ".0" trong cột ADDRESS
+        if "ADDRESS" in df_csv.columns:
+            df_csv["ADDRESS"] = df_csv["ADDRESS"].apply(
+                lambda x: str(int(float(x))) if x.replace(".", "").isdigit() and ".0" in x else x
+            )
+
         output_filename = os.path.splitext(csv_file)[0] + "_Done.csv"
         output_path = os.path.join(output_folder, output_filename)
         os.makedirs(output_folder, exist_ok=True)
         df_csv.to_csv(output_path, index=False)
-        log_output.insert(tk.END, f"Đã xử lý và lưu file: {output_filename}\n")
+        log_message(f"Đã xử lý và lưu file: {output_filename}")
 
 # Hàm xóa cột "Device" và "Point" khỏi các file _Done.csv
 def remove_columns_from_done(output_folder):
-    log_output.insert(tk.END, "Bắt đầu xóa cột 'Device' và 'Point'...\n")
+    log_message("Bắt đầu xóa cột 'Device' và 'Point'...")
     done_files = [f for f in os.listdir(output_folder) if f.lower().endswith("_done.csv")]
 
     if not done_files:
-        log_output.insert(tk.END, "Không tìm thấy file _Done.csv nào trong thư mục output.\n")
+        log_message("Không tìm thấy file _Done.csv nào trong thư mục output.")
         return
 
     for done_file in done_files:
         file_path = os.path.join(output_folder, done_file)
         df = pd.read_csv(file_path)
 
+        # Loại bỏ đuôi ".0" trong cột ADDRESS
+        if "ADDRESS" in df.columns:
+            df["ADDRESS"] = df["ADDRESS"].apply(
+                 lambda x: str(int(x)) if pd.notna(x) and isinstance(x, (float, int)) and x == int(x) else x
+            )
+
         if "Device" in df.columns and "Point" in df.columns:
             df.drop(columns=["Device", "Point"], inplace=True)
             df.to_csv(file_path, index=False)
-            log_output.insert(tk.END, f"Đã xóa cột 'Device' và 'Point' khỏi file: {done_file}\n")
+            log_message(f"Đã xóa cột 'Device' và 'Point' khỏi file: {done_file}")
 
 # Hàm chạy chương trình
 def run_program():
     input_folder = "input"
     output_folder = "output"
+    steps = 4
+    progress = 0
+
     clean_csv(input_folder)
+    progress += 1
+    progress_var.set(int((progress / steps) * 100))
+
     process_csv(input_folder)
+    progress += 1
+    progress_var.set(int((progress / steps) * 100))
+
     process_csv2(input_folder, output_folder)
+    progress += 1
+    progress_var.set(int((progress / steps) * 100))
+
     remove_columns_from_done(output_folder)
-    progress_var.set(100)
-    log_output.insert(tk.END, "Chương trình đã hoàn tất.\n")
+    progress += 1
+    progress_var.set(int((progress / steps) * 100))
+
+    log_message("Chương trình đã hoàn tất.")
 
 # Tạo giao diện GUI
 root = tk.Tk()
-root.title("tool copy data exchange")
+root.title("Tool copy data exchange")
 root.iconbitmap("main.ico")
 
 frame = ttk.Frame(root, padding=10)
