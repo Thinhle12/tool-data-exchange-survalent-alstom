@@ -159,7 +159,7 @@ def process_csv2(input_folder, output_folder):
         # Loại bỏ đuôi ".0" trong cột ADDRESS
         if "ADDRESS" in df_csv.columns:
             df_csv["ADDRESS"] = df_csv["ADDRESS"].apply(
-                lambda x: str(int(float(x))) if x.replace(".", "").isdigit() and ".0" in x else x
+                lambda x: str(int(x)) if pd.notna(x) and isinstance(x, (float, int)) and x == int(x) else x
             )
 
         output_filename = os.path.splitext(csv_file)[0] + "_Done.csv"
@@ -184,7 +184,7 @@ def remove_columns_from_done(output_folder):
         # Loại bỏ đuôi ".0" trong cột ADDRESS
         if "ADDRESS" in df.columns:
             df["ADDRESS"] = df["ADDRESS"].apply(
-                 lambda x: str(int(x)) if pd.notna(x) and isinstance(x, (float, int)) and x == int(x) else x
+                lambda x: str(int(x)) if pd.notna(x) and isinstance(x, (float, int)) and x == int(x) else x
             )
 
         if "Device" in df.columns and "Point" in df.columns:
@@ -222,12 +222,23 @@ root = tk.Tk()
 root.title("Tool copy data exchange")
 root.iconbitmap("main.ico")
 
+# Cấu hình lưới chính của root để các thành phần co giãn
+root.rowconfigure(0, weight=1)
+root.columnconfigure(0, weight=1)
+
 frame = ttk.Frame(root, padding=10)
 frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
 
+# Cấu hình lưới trong frame
+frame.rowconfigure(0, weight=8)  # Ô log chiếm nhiều không gian
+frame.rowconfigure(1, weight=1)  # Progress bar co giãn theo chiều dọc nhỏ
+frame.rowconfigure(2, weight=1)  # Nút RUN
+frame.rowconfigure(3, weight=1)  # Footer
+frame.columnconfigure(0, weight=1)
+
 # Log Output
 log_output = ScrolledText(frame, wrap=tk.WORD, height=20, width=80)
-log_output.grid(row=0, column=0, padx=5, pady=5)
+log_output.grid(row=0, column=0, padx=5, pady=5, sticky=(tk.W, tk.E, tk.N, tk.S))
 
 # Progress Bar
 progress_var = tk.IntVar()
@@ -236,10 +247,10 @@ progress_bar.grid(row=1, column=0, sticky=(tk.W, tk.E), padx=5, pady=5)
 
 # Run Button
 run_button = ttk.Button(frame, text="RUN", command=run_program)
-run_button.grid(row=2, column=0, padx=5, pady=5)
+run_button.grid(row=2, column=0, padx=5, pady=5, sticky=(tk.W, tk.E))
 
 # Footer
 footer = ttk.Label(frame, text="Thinhlh", anchor="center")
-footer.grid(row=3, column=0, padx=5, pady=5)
+footer.grid(row=3, column=0, padx=5, pady=5, sticky=(tk.W, tk.E))
 
 root.mainloop()
