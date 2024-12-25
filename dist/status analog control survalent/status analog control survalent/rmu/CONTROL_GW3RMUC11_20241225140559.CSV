@@ -1,0 +1,4 @@
+﻿"TABLE","PKEY","NAME","PROJECTID","SETID","PID","ADDRSLCT","ADDRESS","ALIAS","ALIASTYPE","P1","P2","P3","P4","P5","P6","P7","P8","TYPE","FORMAT","ISSBO"
+"DESetControl","4477","99b9de92-cf76-4caa-a807-888f88706a4b","0","GW3RMUC11","PCPTHO_RC0111CM_K3,LBS:S","0","0","","0","0","0","0","0","0","0","0","0","0","0","0"
+"DESetControl","4478","cf4c0dcb-47ce-4564-9385-15cad800b811","0","GW3RMUC11","PCPTHO_RC0111CM_K2,LBS:S","0","1","","0","0","0","0","0","0","0","0","0","0","0","0"
+"DESetControl","4479","3806497b-4c4e-4535-b0ba-a4c41fe15c4e","0","GW3RMUC11","PCPTHO_RC0111CM_K1,LBS:S","0","2","","0","0","0","0","0","0","0","0","0","0","0","0"

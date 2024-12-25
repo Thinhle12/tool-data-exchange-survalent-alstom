@@ -63,6 +63,12 @@ def process_csv(input_folder):
             if pd.isna(value) or "," not in value:
                 return None
             prefix, _ = value.split(",", 1)
+            # Xử lý cho trường hợp bắt đầu bằng "PCPTHO_LBSC" hoặc "PCPTHO_RECC"
+            if prefix.startswith("PCPTHO_LBSC"):
+                return f"LBSC{prefix[11:]}"  # Bỏ "PCPTHO_LBSC", giữ phần sau
+            if prefix.startswith("PCPTHO_RECC"):
+                return f"RECC{prefix[11:]}"  # Bỏ "PCPTHO_RECC", giữ phần sau
+
             if prefix.startswith("PCPTHO_RC") and "CM_" in prefix:
                 parts = prefix.split("CM_")
                 if len(parts) == 2:
@@ -127,7 +133,7 @@ def process_csv2(input_folder, output_folder):
 
         with pyxlsb.open_workbook(xlsb_path) as wb:
             for sheet_name in wb.sheets:
-                if is_status_file and sheet_name in ["TC", "TC1"]:
+                if is_status_file and sheet_name in ["TC", "TC1", "TC2"]:
                     log_message(f"Bỏ qua sheet: {sheet_name}.")
                     continue
 
